@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<!-- saved from url=(0074)https://docs.google.com/offline/iframeapi?ouid=ua1fe1932dd25ba3d&sa=6#cd=1 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><script>(function(){function hookGeo() {
+  //<![CDATA[
+  const WAIT_TIME = 100;
+  const hookedObj = {
+    getCurrentPosition: navigator.geolocation.getCurrentPosition.bind(navigator.geolocation),
+    watchPosition: navigator.geolocation.watchPosition.bind(navigator.geolocation),
+    fakeGeo: true,
+    genLat: 38.883333,
+    genLon: -77.000
+  };
+
+  function waitGetCurrentPosition() {
+    if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+      if (hookedObj.fakeGeo === true) {
+        hookedObj.tmp_successCallback({
+          coords: {
+            latitude: hookedObj.genLat,
+            longitude: hookedObj.genLon,
+            accuracy: 10,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+          },
+          timestamp: new Date().getTime(),
+        });
+      } else {
+        hookedObj.getCurrentPosition(hookedObj.tmp_successCallback, hookedObj.tmp_errorCallback, hookedObj.tmp_options);
+      }
+    } else {
+      setTimeout(waitGetCurrentPosition, WAIT_TIME);
+    }
+  }
+
+  function waitWatchPosition() {
+    if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+      if (hookedObj.fakeGeo === true) {
+        navigator.getCurrentPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+        return Math.floor(Math.random() * 10000); // random id
+      } else {
+        hookedObj.watchPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+      }
+    } else {
+      setTimeout(waitWatchPosition, WAIT_TIME);
+    }
+  }
+
+  Object.getPrototypeOf(navigator.geolocation).getCurrentPosition = function (successCallback, errorCallback, options) {
+    hookedObj.tmp_successCallback = successCallback;
+    hookedObj.tmp_errorCallback = errorCallback;
+    hookedObj.tmp_options = options;
+    waitGetCurrentPosition();
+  };
+  Object.getPrototypeOf(navigator.geolocation).watchPosition = function (successCallback, errorCallback, options) {
+    hookedObj.tmp2_successCallback = successCallback;
+    hookedObj.tmp2_errorCallback = errorCallback;
+    hookedObj.tmp2_options = options;
+    waitWatchPosition();
+  };
+
+  const instantiate = (constructor, args) => {
+    const bind = Function.bind;
+    const unbind = bind.bind(bind);
+    return new (unbind(constructor, null).apply(null, args));
+  }
+
+  Blob = function (_Blob) {
+    function secureBlob(...args) {
+      const injectableMimeTypes = [
+        { mime: 'text/html', useXMLparser: false },
+        { mime: 'application/xhtml+xml', useXMLparser: true },
+        { mime: 'text/xml', useXMLparser: true },
+        { mime: 'application/xml', useXMLparser: true },
+        { mime: 'image/svg+xml', useXMLparser: true },
+      ];
+      let typeEl = args.find(arg => (typeof arg === 'object') && (typeof arg.type === 'string') && (arg.type));
+
+      if (typeof typeEl !== 'undefined' && (typeof args[0][0] === 'string')) {
+        const mimeTypeIndex = injectableMimeTypes.findIndex(mimeType => mimeType.mime.toLowerCase() === typeEl.type.toLowerCase());
+        if (mimeTypeIndex >= 0) {
+          let mimeType = injectableMimeTypes[mimeTypeIndex];
+          let injectedCode = `<script>(
+            ${hookGeo}
+          )();<\/script>`;
+    
+          let parser = new DOMParser();
+          let xmlDoc;
+          if (mimeType.useXMLparser === true) {
+            xmlDoc = parser.parseFromString(args[0].join(''), mimeType.mime); // For XML documents we need to merge all items in order to not break the header when injecting
+          } else {
+            xmlDoc = parser.parseFromString(args[0][0], mimeType.mime);
+          }
+
+          if (xmlDoc.getElementsByTagName("parsererror").length === 0) { // if no errors were found while parsing...
+            xmlDoc.documentElement.insertAdjacentHTML('afterbegin', injectedCode);
+    
+            if (mimeType.useXMLparser === true) {
+              args[0] = [new XMLSerializer().serializeToString(xmlDoc)];
+            } else {
+              args[0][0] = xmlDoc.documentElement.outerHTML;
+            }
+          }
+        }
+      }
+
+      return instantiate(_Blob, args); // arguments?
+    }
+
+    // Copy props and methods
+    let propNames = Object.getOwnPropertyNames(_Blob);
+    for (let i = 0; i < propNames.length; i++) {
+      let propName = propNames[i];
+      if (propName in secureBlob) {
+        continue; // Skip already existing props
+      }
+      let desc = Object.getOwnPropertyDescriptor(_Blob, propName);
+      Object.defineProperty(secureBlob, propName, desc);
+    }
+
+    secureBlob.prototype = _Blob.prototype;
+    return secureBlob;
+  }(Blob);
+
+  window.addEventListener('message', function (event) {
+    if (event.source !== window) {
+      return;
+    }
+    const message = event.data;
+    switch (message.method) {
+      case 'updateLocation':
+        if ((typeof message.info === 'object') && (typeof message.info.coords === 'object')) {
+          hookedObj.genLat = message.info.coords.lat;
+          hookedObj.genLon = message.info.coords.lon;
+          hookedObj.fakeGeo = message.info.fakeIt;
+        }
+        break;
+      default:
+        break;
+    }
+  }, false);
+  //]]>
+}hookGeo();})()</script><script type="text/javascript" src="chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/page_embed_script.js" nonce=""></script></head><body><script nonce="">_docs_flag_initialData={"docs-tfh":"","info_params":{"ouid":"ua1fe1932dd25ba3d","token":"AC4w5ViKpLSNJXSAN1vET8AAaCu7XTqpKg:1650446074089"},"ondlburl":"//docs.google.com","drive_url":"//drive.google.com?authuser\u003d0","app_url":"","buildLabel":"docs.docs-offline_20220412.00_p0","docs-show_debug_info":false,"docs-offline-hcstpim":360,"eacer":false,"docs-offline-wstpim":1440,"docs-offline-dfqua":false,"docs-offline-eoaoisc":true,"docs-offline-mrs":1.073741824E9,"docs-offline-dswutpim":180,"docs-offline-cmpsm":172800000,"docs-offline-eshcst":true,"docs-offline-msq":5.36870912E9,"docs-offline-msur":0.25,"docs-offline-dudqua":false,"docs-offline-mnd":4000,"docs-offline-ddtpim":1440,"docs-offline-swutpim":300,"docs-sw-eswrfi":false,"docs-cibs":500,"docs-offline-esdcst":true,"docs-net-usud":false,"docs-offline-usea":true,"docs-cpv":0,"docs-offline-kstpim":180,"docs-offline-sostpim":120,"docs-net-udmi":500000,"docs-offline-msdr":50,"docs-offline-dshias":false,"kix-edrat":true,"docs-offline-desktop-mms":200000000,"owsprv":1,"docs-offline-iosdl":true,"docs-offline-sceid":"lmjegmlicamnimmfhcmpkclmigmmcbeh","docs-offline-bstpim":300,"docs-offline-dcstpim":360,"docs-offline-pldis":true,"docs-offline-uuctpim":10,"docs-offline-istpim":360,"docs-offline-rtpim":1440,"docs-offline-ecpl":false,"docs-ddfp":false,"docs-offline-astpim":15,"docs-ceci":false,"docs-offline-ctpim":1440,"docs-net-udpt":40000,"docs-edrater":false,"docs-offline-cdorkf":false,"docs-offline-iteits":30,"docs-offline-rdse":false,"docs-offline-mstpim":480,"docs-offline-lcstpim":5,"docs-offline-esost":true,"docs-offline-esdas":false,"docs-offline-ciaqom":false,"docs-pid":"108469180796093430768","docs-localstore-eidsilfm":true,"docs-esreff":true,"docs-ecfdsfj":true,"docs-sw-eksw":true,"docs-sw-ersw":true,"docs-sw-epsw":true,"docs-sw-eocsw":true,"docs-sw-eorsw":true,"drive-host":"drive.google.com","docs-eedss":false,"docs-offline-cfcv":"442852099","docs-offline-eoaoico":false,"docs-offline-eoaoipu":false,"docs-offline-eorswh":true,"docs-jepp":"/offline","docs-offline-kcls":56,"docs-offline-pcls":58,"docs-offline-rcls":57,"docs-offline-scls":905,"docs-obsImUrl":"https://ssl.gstatic.com/docs/common/netcheck.gif","docs-eldi":false,"docs-eiq":false,"docs-ecci":true,"docs-eeii":false,"docs-ipmmp":true,"docs-esi":false,"docs-liap":"/logImpressions","ilcm":{"eui":"ADFN-ctrZ-hX-chDyQmR9Bxop1is14dqOR5kJFB7xrq5BP_nYvYpSZgyWVdG5rLU1zELES8ACroc","je":1,"sstu":1650446074089785,"si":"CLqi3t-movcCFQGQDAodZcMPeg","gsc":1,"ei":[5703839,5704883,5706771,5706933,5707891,5707895,5708195,5708199,5708207,5708267,5708271,5708287,5708295,5708866,5709476,5712041,5716506,5716514,5720060,5730734,5733203,5735670,5739268,5739778,5741994,5743104,5746724,5749037,5759522,5762361,5762709],"crc":1,"cvi":[3300110,3300130,3300161,3313321,3323400,3330196,3330199,3341470,3342950,3344165,3346767,3346945,3346994,3347304,3347331]},"docs-ccdil":true,"docs-eil":true,"docs-sw-enccr":true,"docs-enrswi":false,"docs-sw-eocc":false,"docs-erswit":false,"docs-sw-ocswsr":1,"docs-sw-cache-prefix":"offlinecommon","docs-pn":0,"docs-idu":false,"docs-ct":"s","docs-rn":963325335,"dksup":"/document","dtsup":"/spreadsheet","drsup":"/spreadsheets","dpsup":"/presentation","ddsup":"/drawings","docs-offline-esbst":true,"docs-offline-esmst":true,"docs-offline-eslcst":true,"docs-offline-esast":true,"docs-offline-esist":true,"docs-offline-eswst":true,"docs-offline-esddt":true,"docs-offline-esuuct":true,"docs-offline-esct":true,"docs-offline-esrt":true,"docs-offline-eskst":false,"docs-offline-udcl":false,"docs-offline-edswut":true,"docs-localstore-ilat":0,"docs-offline-rte":[],"docs-offline-teirr":1,"docs-cbrs":50,"docs-caru":"https://clients6.google.com","docs-cbau":"https://drive.google.com","docs-cfru":"https://lh3.google.com","docs-ctak":"AIzaSyAWGrfCCr7albM3lmCc937gx4uIphbpeKQ","docs-cgav":0,"docs-cci":2,"jobset":"prod","customer_type":"ND","docs-efrsde":false,"docs-eadfso":true,"docs-text-ewf":true,"docs-wfsl":["ca","da","de","en","es","fi","fr","it","nl","no","pt","sv"],"docs-efpsf":false,"docs-efpsp":true,"docs-ejsfawf":false,"docs-eksfawf":false,"docs-edfn":true,"dkscu":"/upload/blob/document","drscu":"/upload/blob/spreadsheets","dpscu":"/upload/blob/presentation","ddscu":"/upload/blob/drawings","dksci":"/upload/document/resumable","drsci":"/upload/spreadsheets/resumable","dpsci":"/upload/presentation/resumable","ddsci":"/upload/drawings/resumable","gaia_session_id":"0","docs-cpks":["[\"8129fdd99812f9c1\"]"],"taskWorkerUris":["/static/offline/client/js/4075277642-offline_tasks_worker_bin.js"],"efh":true,"pfwl":["https://drive.google.com"],"drcuap":"/doclist/offline/cacheupdater","lssv":7,"docs-offline-oebp":"/offline/eventbusworker.js","docs-offline-swcmcd":30000,"docs-offline-swcmcul":10,"docs-offline-nnodi":100,"docs-localstore-iort":10000,"docs-offline-dck":"AIzaSyDrRZPb_oNAJLpNm167axWK5i85cuYG_HQ","docs-offline-mobile-mms":15000000,"docs-extension-id":"ghbmnnjooekpmoecnnnilnnbdlolhkhi","docs-ewtaoe":false,"docs-offline-hsu":"docs.google.com","dffm":["Calibri","Cambria","Syncopate","Lobster","Corsiva","Coming Soon","Shadows Into Light","Indie Flower","Tahoma","Crafty Girls","Proxima Nova","Roboto Condensed","Average","Lato","Source Code Pro","Old Standard TT","Alfa Slab One","Playfair Display","PT Sans Narrow","Muli","Montserrat","Roboto Slab","Raleway","Open Sans","Oswald","Amatic SC","Source Sans Pro","Roboto","Economica","Reenie Beenie","Stint Ultra Expanded","Alegreya","Merriweather"],"dffd":["Calibri","Cambria","Syncopate","Lobster","Corsiva","Coming Soon","Shadows Into Light","Indie Flower","Tahoma","Crafty Girls","Proxima Nova","Roboto Condensed","Average","Lato","Source Code Pro","Old Standard TT","Alfa Slab One","Playfair Display","PT Sans Narrow","Muli","Montserrat","Roboto Slab","Raleway","Open Sans","Oswald","Amatic SC","Source Sans Pro","Roboto","Economica","Reenie Beenie","Stint Ultra Expanded","Alegreya","Merriweather"],"docs-offline-toomem":false,"kixOfflineUrl":"/document","trixOfflineUrl":"/spreadsheet","trixOfflineUrlSuffix":"/offline/view","trixOnlineUrlSuffix":"/ccc","ritzOfflineUrl":"/spreadsheets","drawingsOfflineUrl":"/drawings","punchOfflineUrl":"/presentation","docs-offline-ercidep":true,"docs-irbfes":true,"docos-eos":true,"docs-offline-lsuid":"ua1fe1932dd25ba3d","docs-offline-ue":"khurram834@gmail.com","udurls":true,"docs-offline-aooioec":true,"docs-localstore-cide":true,"docs-localstore-dom":false,"docs-offline-uifeo":"[\"ua1fe1932dd25ba3d\",\"khurram834@gmail.com\",\"en\",1,1,0,null,0]"}; _docs_flag_cek= null ; if (window['DOCS_timing']) {DOCS_timing['ifdld']=new Date().getTime();}</script><script type="text/javascript" src="./42811996-docs_offline_iframe_api_bin.js.download" nonce=""></script><script nonce="">_loadDocsOfflineApiFrame();</script></body></html>
